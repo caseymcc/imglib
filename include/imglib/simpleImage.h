@@ -13,7 +13,7 @@ struct IMGLIB_EXPORT SimpleImage
 {
     SimpleImage():width(0), stride(0), height(0), owned(false), data(nullptr), dataSize(0) {};
     SimpleImage(const SimpleImage &image);
-    SimpleImage(SimpleImage &&image);
+    SimpleImage(SimpleImage &&image) noexcept;
     SimpleImage(Format format, Depth depth, size_t width, size_t height);
     SimpleImage(Format format, Depth depth, size_t width, size_t height, uint8_t *data, size_t dataSize):
         format(format), depth(depth), width(width), stride(width), height(height), owned(false), data(data), dataSize(dataSize)
@@ -52,20 +52,31 @@ struct IMGLIB_EXPORT SimpleImage
 namespace imglib
 {
 
-inline Format format(const SimpleImage &image) { return image.format; }
-inline Depth depth(const SimpleImage &image) { return image.depth; }
-inline Location location(const SimpleImage &image) { return Location::System; } //allways system for this guy
+template<>
+inline Format format<SimpleImage>(const SimpleImage &image) { return image.format; }
+template<>
+inline Depth depth<SimpleImage>(const SimpleImage &image) { return image.depth; }
+template<>
+inline Location location<SimpleImage>(const SimpleImage &image) { return Location::System; } //allways system for this guy
 
-inline size_t width(const SimpleImage &image) { return image.width; }
-inline size_t height(const SimpleImage &image) { return image.height; }
-inline size_t stride(const SimpleImage &image) { return image.stride; }
+template<>
+inline size_t width<SimpleImage>(const SimpleImage &image) { return image.width; }
+template<>
+inline size_t height<SimpleImage>(const SimpleImage &image) { return image.height; }
+template<>
+inline size_t stride<SimpleImage>(const SimpleImage &image) { return image.stride; }
 
-inline size_t nativeId(const SimpleImage &image) { return (size_t)image.data; }
-inline uint8_t *data(SimpleImage &image) { return image.data; }
-inline const uint8_t *data(const SimpleImage &image) { return image.data; }
-inline size_t dataSize(const SimpleImage &image) { return image.dataSize; }
+template<>
+inline size_t nativeId<SimpleImage>(const SimpleImage &image) { return (size_t)image.data; }
+template<>
+inline uint8_t *data<SimpleImage>(SimpleImage &image) { return image.data; }
+template<>
+inline const uint8_t *data<SimpleImage>(const SimpleImage &image) { return image.data; }
+template<>
+inline size_t dataSize<SimpleImage>(const SimpleImage &image) { return image.dataSize; }
 
-inline bool resize(SimpleImage &image, Format format, Depth depth, size_t width, size_t height)
+template<>
+inline bool resize<SimpleImage>(SimpleImage &image, Format format, Depth depth, size_t width, size_t height)
 {
     image.freeData();
 

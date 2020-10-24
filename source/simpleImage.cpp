@@ -8,13 +8,12 @@ namespace imglib
 
 SimpleImage::SimpleImage(const SimpleImage &image)
 {
-    freeData();
     allocData(image.format, image.depth, image.width, image.height);
 
     memcpy(data, image.data, std::min(dataSize, image.dataSize));
 }
 
-SimpleImage::SimpleImage(SimpleImage &&image)
+SimpleImage::SimpleImage(SimpleImage &&image) noexcept
 {
     format=image.format;
     depth=image.depth;

@@ -67,9 +67,12 @@ bool loadJpeg(ImageWrapper image, const char *filename)
     jpeg_start_decompress(&jpegDecompress);
   
     Format format=getFormat(jpegDecompress.out_color_space);
+    Depth depth=Depth::Bit8;
 
-    image.resize(format, Depth::Bit8, jpegDecompress.output_width, jpegDecompress.output_height);
-    size_t row_stride=image.stride();
+    if(!image.resize(format, depth, jpegDecompress.output_width, jpegDecompress.output_height))
+        return false;
+        
+    size_t row_stride=image.stride()*sizeOfPixel(format, depth);
     uint8_t *bufferLinePos=image.data();
 
     while (jpegDecompress.output_scanline < jpegDecompress.output_height)
@@ -111,7 +114,7 @@ bool saveJpeg(ImageWrapper image, const char *filename)
 
     jpeg_start_compress(&jpegCompress, TRUE);
 
-    size_t row_stride=image.stride();
+    size_t row_stride=image.stride()*sizeOfPixel(image.format(), image.depth());
     uint8_t *bufferLinePos=image.data();
 
     while(jpegCompress.next_scanline < jpegCompress.image_height)
