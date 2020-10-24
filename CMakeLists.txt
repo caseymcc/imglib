@@ -43,7 +43,10 @@ set_target_properties(embed::embed PROPERTIES IMPORTED_LOCATION ${EMBED_LOCATION
 
 set(imglib_headers
     include/imglib/colorConversion.h
+    include/imglib/colorConversion.inl
     include/imglib/copyTo.h
+    include/imglib/draw.h
+    include/imglib/point_glm.h
     include/imglib/image.h
     include/imglib/imageIo.h
     include/imglib/match.h
@@ -127,6 +130,7 @@ if(IMGLIB_USE_OPENCL)
 
     set(imglib_headers ${imglib_headers}
         include/imglib/colorConversion_cl.h
+        include/imglib/context_cl.h
         include/imglib/kernels_cl.h
         include/imglib/openCLImage.h
         include/imglib/openCLImageBuffer.h
