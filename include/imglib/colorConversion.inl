@@ -1,11 +1,12 @@
-#ifdef IMGLIB_OPENCL
-#include "colorConversion_cl.h"
-#endif//IMGLIB_OPENCL
+#include <cassert>
+
+namespace imglib
+{
 
 template<typename _Image>
 bool convert(_Image &srcImage, _Image &dstImage)
 {
-    if((location(srcImage)!=Location::OpenCL)||(location(dstImage)==Location::OpenCL))
+    if((location(srcImage) != Location::System) || (location(dstImage) != Location::System))
     {
         assert(false);
         return false;
@@ -49,3 +50,5 @@ bool rgbToGreyScale(_Image &srcImage, _Image &dstImage)
     return rgbToGreyScale(data(srcImage), dataSize(srcImage), depth(srcImage), width(srcImage), height(srcImage),
         data(dstImage), dataSize(dstImage), depth(dstImage), width(dstImage), height(dstImage));
 }
+
+}//namespace imglib

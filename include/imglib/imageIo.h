@@ -46,6 +46,16 @@ bool load(_ImageType &image, const std::string &location)
 }
 
 template<typename _ImageType>
+bool loadBuffer(_ImageType &image, const uint8_t *buffer, size_t size, std::string &format)
+{
+    if(format=="png")
+        return loadPngBuffer(image, buffer, size);
+
+    assert(false); //not supported yet
+    return false;
+}
+
+template<typename _ImageType>
 bool save(_ImageType &image, const std::string &location)
 {
     fs::path path(location);
