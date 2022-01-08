@@ -1,6 +1,7 @@
 cmake_minimum_required(VERSION 3.12)
 
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${CMAKE_CURRENT_LIST_DIR}/cmake)
+
 include(${CMAKE_CURRENT_LIST_DIR}/cmake/Hunter/HunterGate.cmake)
 
 HunterGate(
@@ -13,17 +14,15 @@ project(imglib)
 #remove min and max macro declares from windows builds, causes issues with std::min/max
 add_definitions(-DNOMINMAX)
 
-option(IMGLIB_USE_COMPILETIME_TYPE "Turn on/off support for compile time type informat" ON)
+option(IMGLIB_USE_COMPILETIME_TYPE "Turn on/off support for compile time type informat" OFF)
 option(IMGLIB_USE_PNG "Turn on/off support for PNG" ON)
 option(IMGLIB_USE_JPEG "Turn on/off support for Jpeg" ON)
-option(IMGLIB_USE_EIGEN "Turn on/off support for eigen library" ON)
-option(IMGLIB_USE_OPENCL "Turn on/off support for OpenCl" ON)
-option(IMGLIB_USE_OPENCL_CPP "Turn on/off support for OpenCl CPP classes" ON)
+option(IMGLIB_USE_EIGEN "Turn on/off support for eigen library" OFF)
+option(IMGLIB_USE_OPENCL "Turn on/off support for OpenCl" OFF)
+option(IMGLIB_USE_OPENCL_CPP "Turn on/off support for OpenCl CPP classes" OFF)
 option(IMGLIB_USE_CUDA "Turn on/off support for CUDA" OFF)
 option(IMGLIB_BUILD_TEST "Turns on test application" OFF)
-
-#set(IMGLIB_STD_FILESYSTEM 1)
-#set(IMGLIB_EXPERIMENTAL_FILESYSTEM 2)
+set(IMGLIB_USE_FASTCV OFF) #used automatically if found
 
 #build embed
 include(ExternalProject)
@@ -41,84 +40,82 @@ add_executable(embed::embed IMPORTED)
 set_target_properties(embed::embed PROPERTIES IMPORTED_LOCATION ${EMBED_LOCATION})
 #complete embed project
 
-set(imglib_headers
-    include/imglib/colorConversion.h
-    include/imglib/colorConversion.inl
-    include/imglib/copyTo.h
-    include/imglib/draw.h
-    include/imglib/point_glm.h
-    include/imglib/image.h
-    include/imglib/imageIo.h
-    include/imglib/match.h
-    include/imglib/ppm.h
-    include/imglib/simpleImage.h
-    include/imglib/transform.h
-)
-
 set(imglib_sources
-    source/colorConversion.cpp
-    source/image.cpp
-    source/match.cpp
-    source/ppm.cpp
-    source/simpleImage.cpp
-    source/transform.cpp
+    imglib/bufferImage.h
+    bufferImage.cpp
+    imglib/colorConversion.h
+    colorConversion.cpp
+    imglib/convert.h
+    convert.cpp
+    imglib/copy.h
+    imglib/crop.h
+    crop.cpp
+    imglib/image.h
+    image.cpp
+    imglib/imageIo.h
+    imglib/interpolation.h
+    imglib/match.h
+    match.cpp
+    imglib/math.h
+    math.cpp
+    imglib/ppm.h
+    ppm.cpp
+    imglib/quantize.h
+    quantize.cpp
+    imglib/scale.h
+    scale.cpp
+    imglib/simpleImage.h
+    simpleImage.cpp
+    imglib/transform.h
+    transform.cpp
 )
 
 set(imglib_libraries "")
 set(imglib_compile_options "")
+set(imglib_compile_defines "")
 
-#if("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU")
-#    set(IMGLIB_USE_FILESYSTEM ${IMGLIB_EXPERIMENTAL_FILESYSTEM})
-#    if(CMAKE_CXX_COMPILER_VERSION VERSION_GREATER_EQUAL 8.0)
-#        set(IMGLIB_USE_FILESYSTEM ${IMGLIB_STD_FILESYSTEM})
-#    endif()
+#if(IMGLIB_USE_COMPILETIME_TYPE)
+#    hunter_add_package(ctti)
+#    find_package(ctti REQUIRED CONFIG)
 #
-#    set(imglib_libraries ${imglib_libraries} stdc++fs)
-#    set(imglib_compile_options "-lstdc++fs")
+#    set(imglib_libraries ${imglib_libraries} ctti)
 #endif()
-
-if(IMGLIB_USE_COMPILETIME_TYPE)
-    hunter_add_package(ctti)
-    find_package(ctti REQUIRED CONFIG)
-
-    set(imglib_libraries ${imglib_libraries} ctti)
-endif()
 
 if(IMGLIB_USE_EIGEN)
     hunter_add_package(Eigen)
     find_package(Eigen3 REQUIRED)
 
     set(imglib_libraries ${imglib_libraries} Eigen3::Eigen)
+
+    set(imglib_compile_defines ${imglib_compile_defines} -DIMGLIB_USE_EIGEN)
 endif()
 
 if(IMGLIB_USE_PNG)
     hunter_add_package(PNG)
     find_package(PNG CONFIG REQUIRED)
 
-    set(imglib_headers ${imglib_headers}
-        include/imglib/png.h
-    )
-
     set(imglib_sources ${imglib_sources}
-        source/png.cpp
+        imglib/png.h
+        png.cpp
     )
 
     set(imglib_libraries ${imglib_libraries} PNG::png)
+
+    set(imglib_compile_defines ${imglib_compile_defines} -DIMGLIB_USE_PNG)
 endif()
 
 if(IMGLIB_USE_JPEG)
     hunter_add_package(Jpeg)
     find_package(JPEG CONFIG REQUIRED)
 
-    set(imglib_headers ${imglib_headers}
-        include/imglib/jpeg.h
-    )
-
     set(imglib_sources ${imglib_sources}
-        source/jpeg.cpp
+        imglib/jpeg.h
+        jpeg.cpp
     )
 
     set(imglib_libraries ${imglib_libraries} JPEG::jpeg)
+
+    set(imglib_compile_defines ${imglib_compile_defines} -DIMGLIB_USE_JPEG)
 endif()
 
 if(IMGLIB_USE_OPENCL)
@@ -128,25 +125,21 @@ if(IMGLIB_USE_OPENCL)
     hunter_add_package(OpenCL-cpp)
     find_package(OpenCL-cpp CONFIG REQUIRED)
 
-    set(imglib_headers ${imglib_headers}
-        include/imglib/colorConversion_cl.h
-        include/imglib/context_cl.h
-        include/imglib/kernels_cl.h
-        include/imglib/openCLImage.h
-        include/imglib/openCLImageBuffer.h
-        include/imglib/operators_cl.h
-        include/imglib/transform_cl.h
-        include/imglib/utils_cl.h
-    )
-
     set(imglib_sources ${imglib_sources}
-        source/colorConversion_cl.cpp
-        source/kernels_cl.cpp
-        source/openCLImage.cpp
-        source/openCLImageBuffer.cpp
-        source/operators_cl.cpp
-        source/transform_cl.cpp
-        source/utils_cl.cpp
+        imglib/cl/colorConversion_cl.h
+        cl/colorConversion_cl.cpp
+        imglib/cl/kernels_cl.h
+        cl/kernels_cl.cpp
+        imglib/cl/openCLImage.h
+        cl/openCLImage.cpp
+        imglib/cl/openCLImageBuffer.h
+        cl/openCLImageBuffer.cpp
+        imglib/cl/operators_cl.h
+        cl/operators_cl.cpp
+        imglib/cl/transform_cl.h
+        cl/transform_cl.cpp
+        imglib/cl/utils_cl.h
+        cl/utils_cl.cpp
     )
 
     set(imglib_libraries ${imglib_libraries} 
@@ -162,15 +155,46 @@ if(IMGLIB_USE_OPENCL)
         kernels/utils.cl
     )
     embed_files(embededFiles "${embedFiles}" "imglib::cl")
-
 endif()
 
+if(IMGLIB_USE_CUDA)
+    find_package(CUDAToolkit)
 
-add_library(imglib
+    enable_language(CUDA)
+
+    set(imglib_sources ${imglib_sources}
+        imglib/cuda/convert.h
+        cuda/convert.cu
+        imglib/cuda/copy.h
+        cuda/copy.cpp
+        imglib/cuda/simpleImage.h
+        cuda/simpleImage.cpp
+    )
+
+    set(imglib_libraries ${imglib_libraries}
+        CUDA::toolkit
+        CUDA::cudart
+    ) 
+endif()
+
+if(IMGLIB_USE_FASTCV)
+    set(imglib_sources ${imglib_sources}
+        imglib/fastcv/scale.h
+        fastcv/scale.cpp
+    )
+
+    set(imglib_libraries ${imglib_libraries}
+        FastCV::FastCV
+    )
+
+    set(imglib_compile_defines ${imglib_compile_defines} -DIMGLIB_USE_FASTCV)
+endif()
+
+add_library(imglib 
     ${imglib_sources}
-    ${imglib_headers}
     ${embededFiles}
 )
+
 
 #force embed to build
 add_dependencies(imglib embed)
@@ -178,11 +202,10 @@ add_dependencies(imglib embed)
 include(GenerateExportHeader)
 generate_export_header(imglib)
 
-target_link_libraries(imglib ${imglib_libraries})
+target_link_libraries(imglib PUBLIC ${imglib_libraries})
 
-target_include_directories(imglib PUBLIC ${CMAKE_CURRENT_LIST_DIR}/include)
+target_include_directories(imglib PUBLIC ${CMAKE_CURRENT_LIST_DIR})
 target_include_directories(imglib PUBLIC ${CMAKE_CURRENT_BINARY_DIR}) #export files will be here
-#target_compile_definitions(imglib PRIVATE "-DIMGLIB_USE_FILESYSTEM=${IMGLIB_USE_FILESYSTEM}")
 target_compile_options(imglib PUBLIC ${imglib_compile_options})
 
 #link to file system
@@ -206,59 +229,62 @@ if(IMGLIB_USE_OPENCL)
     get_filename_component(OPENCL_BIN_DIR ${OPENCL_BIN_DIR} DIRECTORY)
 endif()
 
-if(IMGLIB_USE_EIGEN)
-    target_compile_definitions(imglib PUBLIC -DIMGLIB_EIGEN)
+if(IMGLIB_USE_CUDA)
+    target_compile_definitions(imglib PUBLIC -DIMGLIB_CUDA)
+    set_target_properties(imglib PROPERTIES 
+#        POSITION_INDEPENDENT_CODE ON
+#        CUDA_SEPARABLE_COMPILATION ON
+        CUDA_RESOLVE_DEVICE_SYMBOLS ON
+    )
 endif()
 
-if(IMGLIB_USE_PNG)
-    target_compile_definitions(imglib PUBLIC -DIMGLIB_PNG)
-endif()
+target_compile_definitions(imglib PUBLIC ${imglib_compile_defines})
 
 #build test application
-#if(IMGLIB_BUILD_TEST)
-#    set(imglib_benchmark_headers
-#    )
-#    
-#    set(imglib_benchmark_sources
-#        test/benchmark.cpp
-#    )
-#
-#    if(IMGLIB_USE_OPENCL)
-#        set(imglib_benchmark_headers ${imglib_benchmark_headers}
-#            test/benchmarkOpenCL.h
-#        )
-#
-#        set(imglib_benchmark_sources ${imglib_benchmark_sources}
-#            test/benchmarkOpenCL.cpp
-#        )
-#    endif()
-#
-#    add_executable(imglibBenchmark WIN32
-#        ${imglib_benchmark_headers}
-#        ${imglib_benchmark_sources}
-#    )
-#
-#    target_link_libraries(imglibBenchmark imglib gflags-static opencl_util)
-#
-#    set_target_properties(imglibBenchmark PROPERTIES FOLDER "benchmarks")
-#
-#    if(WIN32)
-#        foreach(CONFIG_TYPE ${CMAKE_CONFIGURATION_TYPES} )
-#            string( TOUPPER ${CONFIG_TYPE} CONFIG_TYPE_UPPER )
-#            set_target_properties(imglibBenchmark PROPERTIES LINK_FLAGS_${CONFIG_TYPE_UPPER} "/SUBSYSTEM:CONSOLE")
-#            set_target_properties(imglibBenchmark PROPERTIES COMPILE_DEFINITIONS_${CONFIG_TYPE_UPPER} "_CONSOLE")
-#        endforeach()
-#    endif()
-#
-#    set(RUNTIME_LIBS "")
-#
-#    if(IMGLIB_USE_OPENCL)
-#        set(RUNTIME_LIBS ${RUNTIME_LIBS} ${OPENCL_BIN_DIR})
-#    endif()
-#
-#    #message(FATAL_ERROR "RUNTIME_LIBS: ${RUNTIME_LIBS}")
-#    create_target_launcher(imglibBenchmark
-#        RUNTIME_LIBRARY_DIRS ${RUNTIME_LIBS}
-#    )
-#endif()
+if(IMGLIB_BUILD_TEST)
+    set(imglib_benchmark_headers
+    )
+    
+    set(imglib_benchmark_sources
+        test/benchmark.cpp
+    )
+
+    if(IMGLIB_USE_OPENCL)
+        set(imglib_benchmark_headers ${imglib_benchmark_headers}
+            test/benchmarkOpenCL.h
+        )
+
+        set(imglib_benchmark_sources ${imglib_benchmark_sources}
+            test/benchmarkOpenCL.cpp
+        )
+    endif()
+
+    add_executable(imglibBenchmark
+        ${imglib_benchmark_headers}
+        ${imglib_benchmark_sources}
+    )
+
+    target_link_libraries(imglibBenchmark imglib gflags-static opencl_util)
+
+    set_target_properties(imglibBenchmark PROPERTIES FOLDER "benchmarks")
+
+    if(WIN32)
+        foreach(CONFIG_TYPE ${CMAKE_CONFIGURATION_TYPES} )
+            string( TOUPPER ${CONFIG_TYPE} CONFIG_TYPE_UPPER )
+            set_target_properties(imglibBenchmark PROPERTIES LINK_FLAGS_${CONFIG_TYPE_UPPER} "/SUBSYSTEM:CONSOLE")
+            set_target_properties(imglibBenchmark PROPERTIES COMPILE_DEFINITIONS_${CONFIG_TYPE_UPPER} "_CONSOLE")
+        endforeach()
+    endif()
+
+    set(RUNTIME_LIBS "")
+
+    if(IMGLIB_USE_OPENCL)
+        set(RUNTIME_LIBS ${RUNTIME_LIBS} ${OPENCL_BIN_DIR})
+    endif()
+
+    #message(FATAL_ERROR "RUNTIME_LIBS: ${RUNTIME_LIBS}")
+    create_target_launcher(imglibBenchmark
+        RUNTIME_LIBRARY_DIRS ${RUNTIME_LIBS}
+    )
+endif()
 
